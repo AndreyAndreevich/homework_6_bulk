@@ -2,43 +2,90 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <memory>
 #include <functional>
 
 //--------<Observer>--------------------------------------
 
+using Commands = std::vector<std::string>;
+
 class Observer {
 protected:
-  std::vector<std::string> commands;
+  Commands* commands = nullptr;
 public:
+  virtual void update(Commands& commands) {
+    this->commands = &commands;
+  }
   virtual void print() = 0;
-  virtual void addCommand(std::string command) {
-    commands.push_back(command);
-  }
-  virtual void clear() {
-    commands.clear();
-  }
 };
 
 //--------</Observer>-------------------------------------
+
+//--------<Handler>---------------------------------------
+
+class Handler {
+  std::vector<Observer*> writers;
+  Commands commands;
+  int N;
+  int count = 0;
+
+  void clear() {
+    count = 0;
+    commands.clear();
+  }
+
+  void print() {
+    for(auto& writer : writers)
+      writer->print();
+  };
+
+  void update() {
+    for(auto& writer : writers)
+      writer->update(commands);
+  }
+
+public:
+  void subscribe(Observer *obs) {
+    writers.push_back(obs);
+  }
+
+  void setN(const int& n) {
+    N = n;
+  }
+
+  void addCommand(const std::string& command) {
+    commands.push_back(command);
+    update();
+    count++;
+    if (count == N) {
+      print();
+      clear();
+    }
+  }
+};
+
+//--------</Handler>---------------------------------------
 
 //--------<Writers>---------------------------------------
 
 class ConsoleWriter : public Observer {
   std::ostream* out;
 public:
-  ConsoleWriter() {
+  ConsoleWriter(Handler *handler = nullptr) {
     out = &std::cout;
+    if (handler)
+      handler->subscribe(this);
   }
   
-  ConsoleWriter(std::ostream& out_stream) {
+  ConsoleWriter(std::ostream& out_stream, Handler *handler = nullptr) {
     out = &out_stream;
+    if (handler)
+      handler->subscribe(this);
   }
 
   void print() override {
     *out << "bulk: ";
-    for(auto command = commands.cbegin(); command < commands.cend(); command++) {
-      if (command != commands.cbegin())
+    for(auto command = commands->cbegin(); command < commands->cend(); command++) {
+      if (command != commands->cbegin())
         *out << ", ";
       *out << *command;
     }
@@ -51,73 +98,32 @@ class FileWriter : public Observer {
   std::ofstream file;
   std::function<std::string()> name_generator;
 public:
-  FileWriter() {   
+  FileWriter(Handler *handler = nullptr) {   
     name_generator = [](){return std::string{"aaaa.txt"};};
+    if (handler)
+      handler->subscribe(this);
   }
 
-  FileWriter(std::string filename) {
+  FileWriter(std::string filename, Handler *handler = nullptr) {
     name_generator = [filename](){return filename;};
+    if (handler)
+      handler->subscribe(this);
   }
 
-  void addCommand(std::string command) override {
-    if (commands.empty())
+  void update(Commands& commands) {
+    if (!commands.empty() && !file.is_open())
       file.open(name_generator());
-    Observer::addCommand(command);
-  }
-
-  void clear() override {
-    file.close();
-    Observer::clear();
-  }
+    Observer::update(commands);
+  } 
 
   void print() override {
     file << "bulk: ";
-    for(auto command = commands.cbegin(); command < commands.cend(); command++) {
-      if (command != commands.cbegin())
+    for(auto command = commands->cbegin(); command < commands->cend(); command++) {
+      if (command != commands->cbegin())
         file << ", ";
       file << *command;
     }
+    file.close();
   }
 };
-
 //--------</Writers>--------------------------------------
-
-//--------<Handler>---------------------------------------
-
-class Handler {
-  std::vector<std::unique_ptr<Observer>> writers;
-  int N;
-  int count = 0;
-
-  void clear() {
-    count = 0;
-    for(auto& writer : writers)
-      writer->clear();
-  }
-
-  void print() {
-    for(auto& writer : writers)
-      writer->print();
-  };
-
-public:
-  void addWriter(Observer* obs) {
-    writers.emplace_back(obs);
-  }
-
-  void setN(const int& n) {
-    N = n;
-  }
-
-  void addCommand(std::string command) {
-    for(auto& writer : writers)
-      writer->addCommand(command);
-    count++;
-    if (count == N) {
-      print();
-      clear();
-    }
-  }
-};
-
-//--------</Handler>---------------------------------------
