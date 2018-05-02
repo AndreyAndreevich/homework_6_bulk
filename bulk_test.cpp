@@ -3,12 +3,66 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/assert.hpp>
 
+#include "bulk.h"
 
-BOOST_AUTO_TEST_SUITE(bulk_test)
+BOOST_AUTO_TEST_SUITE(test_writers)
 
-    BOOST_AUTO_TEST_CASE(test_print_ip_char_correct)
+    BOOST_AUTO_TEST_CASE(print_console)
     {
-        //BOOST_CHECK_EQUAL(out_buffer.str(),"255");
+        std::stringbuf out_buffer;
+        std::ostream out_stream(&out_buffer);
+        ConsoleWriter writer(out_stream);
+        writer.addCommand("cmd1");
+        writer.addCommand("cmd2");
+        writer.print();
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1, cmd2");
     }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(print_file)
+    {
+        std::string name{"test_file.txt"};
+        FileWriter writer(name);
+        writer.addCommand("cmd1");
+        writer.addCommand("cmd2");
+        writer.print();
+        writer.clear();
+        std::ifstream file{name};
+        std::stringstream string_stream;
+        string_stream << file.rdbuf();
+        BOOST_CHECK_EQUAL(string_stream.str(),"bulk: cmd1, cmd2");
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+BOOST_AUTO_TEST_SUITE(test_handler)
+
+    BOOST_AUTO_TEST_CASE(print_commands)
+    {
+        std::stringbuf out_buffer;
+        std::ostream out_stream(&out_buffer);
+        std::string name{"test_file.txt"};
+
+        Handler handler;
+        handler.addWriter(new ConsoleWriter(out_stream));
+        handler.addWriter(new FileWriter(name));
+        handler.setN(2);
+        handler.addCommand("cmd1");
+        handler.addCommand("cmd2");
+
+        std::ifstream file{name};
+        std::stringstream string_stream;
+        string_stream << file.rdbuf();
+
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1, cmd2");
+        BOOST_CHECK_EQUAL(string_stream.str(),"bulk: cmd1, cmd2");
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 BOOST_AUTO_TEST_SUITE_END()
