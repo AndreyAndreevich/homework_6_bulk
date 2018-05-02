@@ -1,8 +1,11 @@
+#ifndef bulk_h
+#define bulk_h
+
+#include "parser.h"
+
 #include <iostream>
-#include <fstream>
 #include <vector>
-#include <string>
-#include <functional>
+
 
 //--------<Observer>--------------------------------------
 
@@ -20,18 +23,14 @@ public:
 
 //--------</Observer>-------------------------------------
 
+
 //--------<Handler>---------------------------------------
 
 class Handler {
   std::vector<Observer*> writers;
   Commands commands;
+  BlockParser parser;
   int N;
-  int count = 0;
-
-  void clear() {
-    count = 0;
-    commands.clear();
-  }
 
   void print() {
     for(auto& writer : writers)
@@ -52,78 +51,43 @@ public:
     N = n;
   }
 
-  void addCommand(const std::string& command) {
-    commands.push_back(command);
-    update();
-    count++;
-    if (count == N) {
-      print();
-      clear();
+  void addCommand(const std::string& command) { 
+    switch(parser.pars(command))
+    {
+      case BlockParser::Empty: 
+        break;
+
+      case BlockParser::StartBlock: 
+        N = -1; 
+        commands.clear();
+        break;
+
+      case BlockParser::CancelBlock:
+        N = commands.size();
+        break;
+
+      case BlockParser::Command:
+        commands.push_back(command);
+        update();
+        break;
+
+      default: break;
     }
+    
+    if (commands.size() == N) {
+      print();
+      commands.clear();
+    }
+  }
+
+  void stop() {
+    if (N != -1 && commands.size())
+      print();
+    commands.clear();
   }
 };
 
 //--------</Handler>---------------------------------------
 
-//--------<Writers>---------------------------------------
 
-class ConsoleWriter : public Observer {
-  std::ostream* out;
-public:
-  ConsoleWriter(Handler *handler = nullptr) {
-    out = &std::cout;
-    if (handler)
-      handler->subscribe(this);
-  }
-  
-  ConsoleWriter(std::ostream& out_stream, Handler *handler = nullptr) {
-    out = &out_stream;
-    if (handler)
-      handler->subscribe(this);
-  }
-
-  void print() override {
-    *out << "bulk: ";
-    for(auto command = commands->cbegin(); command < commands->cend(); command++) {
-      if (command != commands->cbegin())
-        *out << ", ";
-      *out << *command;
-    }
-  }
-};
-
-//---------------------------------------------------------------------------------
-
-class FileWriter : public Observer {
-  std::ofstream file;
-  std::function<std::string()> name_generator;
-public:
-  FileWriter(Handler *handler = nullptr) {   
-    name_generator = [](){return std::string{"aaaa.txt"};};
-    if (handler)
-      handler->subscribe(this);
-  }
-
-  FileWriter(std::string filename, Handler *handler = nullptr) {
-    name_generator = [filename](){return filename;};
-    if (handler)
-      handler->subscribe(this);
-  }
-
-  void update(Commands& commands) {
-    if (!commands.empty() && !file.is_open())
-      file.open(name_generator());
-    Observer::update(commands);
-  } 
-
-  void print() override {
-    file << "bulk: ";
-    for(auto command = commands->cbegin(); command < commands->cend(); command++) {
-      if (command != commands->cbegin())
-        file << ", ";
-      file << *command;
-    }
-    file.close();
-  }
-};
-//--------</Writers>--------------------------------------
+#endif
