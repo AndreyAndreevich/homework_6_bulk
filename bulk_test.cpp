@@ -6,6 +6,8 @@
 #include "bulk.h"
 #include "writers.h"
 
+using Commands = std::vector<std::string>;
+
 BOOST_AUTO_TEST_SUITE(test_writers)
 
     BOOST_AUTO_TEST_CASE(print_console)
@@ -13,9 +15,9 @@ BOOST_AUTO_TEST_SUITE(test_writers)
         std::stringbuf out_buffer;
         std::ostream out_stream(&out_buffer);
         ConsoleWriter writer(out_stream);
-        std::vector<std::string> commands = {"cmd1", "cmd2"};
-        writer.update(commands);
-        writer.print();
+        auto commands = std::make_shared<Commands>(Commands{"cmd1", "cmd2"});
+        BOOST_CHECK_NO_THROW(writer.update(commands));
+        BOOST_CHECK_NO_THROW(writer.print());
         BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1, cmd2\n");
     }
 
@@ -25,13 +27,37 @@ BOOST_AUTO_TEST_SUITE(test_writers)
     {
         std::string name{"test_file.txt"};
         FileWriter writer(name);
-        std::vector<std::string> commands = {"cmd1", "cmd2"};
-        writer.update(commands);
-        writer.print();
+        auto commands = std::make_shared<Commands>(Commands{"cmd1", "cmd2"});
+        BOOST_CHECK_NO_THROW(writer.update(commands));
+        BOOST_CHECK_NO_THROW(writer.print());
         std::ifstream file{name};
         std::stringstream string_stream;
         string_stream << file.rdbuf();
         BOOST_CHECK_EQUAL(string_stream.str(),"bulk: cmd1, cmd2");
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(delete_commands_console)
+    {
+        std::stringbuf out_buffer;
+        std::ostream out_stream(&out_buffer);
+        ConsoleWriter writer(out_stream);
+        {
+            auto commands = std::make_shared<Commands>(Commands{"cmd1", "cmd2"});
+            writer.update(commands);
+        }
+        BOOST_CHECK_THROW(writer.print(),std::exception);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(delete_commands_file)
+    {
+        FileWriter writer("test_file.txt");
+        std::shared_ptr<Commands> commands;
+        BOOST_CHECK_THROW(writer.update(commands),std::exception);
+        BOOST_CHECK_THROW(writer.print(),std::exception);
     }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -238,6 +264,37 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
 
         BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1, cmd2, cmd3\n");
         BOOST_CHECK_EQUAL(string_stream.str(),"bulk: cmd1, cmd2, cmd3");
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(extendeds_tests)
+
+    BOOST_AUTO_TEST_CASE(delete_writer)
+    {
+        std::stringbuf out_buffer;
+        std::ostream out_stream(&out_buffer);
+        std::string name{"test_file.txt"};
+        std::fstream file{name};
+        file.open(name);
+        file.close();
+
+        Handler handler;
+        {
+            FileWriter fileWriter(name, &handler);
+        }
+        ConsoleWriter consoleWriter(out_stream, &handler);
+        
+        handler.setN(1);
+        handler.addCommand("cmd1");
+        handler.stop();
+
+        std::stringstream string_stream;
+        string_stream << file.rdbuf();
+        file.close();
+
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1\n");
+        BOOST_CHECK_EQUAL(string_stream.str(),"");
     }
 
 BOOST_AUTO_TEST_SUITE_END()

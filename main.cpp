@@ -5,20 +5,24 @@
 
 int main() 
 {
-  int N;
-  std::cin >> N;
+  try {
+    int N;
+    std::cin >> N;
 
-  Handler handler;
-  ConsoleWriter consoleWriter(&handler);
-  FileWriter fileWriter(&handler);
+    std::unique_ptr<Handler> handler(new Handler);
+    std::unique_ptr<ConsoleWriter> consoleWriter(new ConsoleWriter(handler.get()));
+    std::unique_ptr<FileWriter> fileWriter(new FileWriter(handler.get()));
 
-  handler.setN(N);
+    handler->setN(N);
 
-  std::string line;
-  while (std::getline(std::cin, line)) {
-    handler.addCommand(line);
+    std::string line;
+    while (std::getline(std::cin, line)) {
+      handler->addCommand(line);
+    }
+    handler->stop();
+  } catch(const std::exception &e) {
+        std::cerr << e.what() << std::endl;
   }
-  handler.stop();
 
   return 0;
 }
