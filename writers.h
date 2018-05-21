@@ -45,26 +45,19 @@ public:
 
 class FileWriter : public Observer {
   std::ofstream file;
-  std::function<std::string()> name_generator;
-  std::string name;
   std::shared_ptr<Observer> thisPtr;
+  std::weak_ptr<std::time_t> time;
+  std::string name;
 public:
   FileWriter(Handler *handler) { 
     thisPtr = std::shared_ptr<Observer>(this,[](auto p){});
-    name_generator = [](){
-      std::stringbuf out_buffer;
-      std::ostream out_stream(&out_buffer);
-      out_stream << "bulk" << std::time(nullptr) << ".log";
-      return out_buffer.str();
-    };
     if (handler)
       handler->subscribe(thisPtr);
   }
 
-  FileWriter(std::string filename, Handler *handler = nullptr) {
+  FileWriter(std::weak_ptr<std::time_t> time_, Handler *handler = nullptr) {
     thisPtr = std::shared_ptr<Observer>(this,[](auto p){});
-    name_generator = [filename](){return filename;};
-    name = name_generator();
+    time = time_;
     if (handler)
       handler->subscribe(thisPtr);
   }
@@ -74,7 +67,11 @@ public:
       throw std::runtime_error("commands do not exist");
     }
     if (commands.lock()->size() == 1) {
-      name = name_generator();
+      std::stringbuf out_buffer;
+      std::ostream out_stream(&out_buffer);
+      std::time_t* time_ = time.expired() ? nullptr : time.lock().get();
+      out_stream << "bulk" << std::time(time_) << ".log";
+      name = out_buffer.str();
     }
     Observer::update(commands);
   } 
