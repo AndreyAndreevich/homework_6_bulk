@@ -8,11 +8,16 @@ endif()
 
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
-add_executable(${PROJECT_NAME} main.cpp)
+set(SOURCE 
+        Handler.cpp
+        Writers.cpp    
+)
+
+add_executable(${PROJECT_NAME} ${SOURCE} main.cpp)
 
 set(TEST_NAME bulk_test)
 
-add_executable(${TEST_NAME} bulk_test.cpp)
+add_executable(${TEST_NAME} ${SOURCE} bulk_test.cpp)
 
 set_target_properties(${PROJECT_NAME} ${TEST_NAME} PROPERTIES
         CXX_STANDARD 14

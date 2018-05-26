@@ -3,8 +3,8 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/assert.hpp>
 
-#include "bulk.h"
-#include "writers.h"
+#include "Handler.h"
+#include "Writers.h"
 
 using Commands = std::vector<std::string>;
 
@@ -94,12 +94,14 @@ BOOST_AUTO_TEST_SUITE(test_handler)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        ConsoleWriter consoleWriter(out_stream, &handler);
-        FileWriter fileWriter(time, &handler);
-        handler.setN(2);
-        handler.addCommand("cmd1");
-        handler.addCommand("cmd2");
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+        handler->setN(2);
+        handler->addCommand("cmd1");
+        handler->addCommand("cmd2");
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
@@ -117,16 +119,19 @@ BOOST_AUTO_TEST_SUITE(test_handler)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        ConsoleWriter consoleWriter(out_stream, &handler);
-        FileWriter fileWriter(time, &handler);
-        handler.setN(5);
-        handler.addCommand("cmd1");
-        handler.addCommand("cmd2");
-        handler.addCommand("{");
-        handler.addCommand("cmd3");
-        handler.addCommand("cmd4");
-        handler.addCommand("}");
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+
+        handler->setN(5);
+        handler->addCommand("cmd1");
+        handler->addCommand("cmd2");
+        handler->addCommand("{");
+        handler->addCommand("cmd3");
+        handler->addCommand("cmd4");
+        handler->addCommand("}");
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
@@ -150,13 +155,16 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        ConsoleWriter consoleWriter(out_stream, &handler);
-        FileWriter fileWriter(time, &handler);
-        handler.setN(3);
-        handler.addCommand("cmd1");
-        handler.addCommand("cmd2");
-        handler.addCommand("cmd3");
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+
+        handler->setN(3);
+        handler->addCommand("cmd1");
+        handler->addCommand("cmd2");
+        handler->addCommand("cmd3");
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
@@ -169,9 +177,9 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         out_buffer.str("");
         string_stream.str("");
 
-        handler.addCommand("cmd4");
-        handler.addCommand("cmd5");
-        handler.stop();
+        handler->addCommand("cmd4");
+        handler->addCommand("cmd5");
+        handler->stop();
 
         file.open(name(time));
         string_stream << file.rdbuf();
@@ -189,13 +197,16 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        ConsoleWriter consoleWriter(out_stream, &handler);
-        FileWriter fileWriter(time, &handler);
-        handler.setN(3);
-        handler.addCommand("cmd1");
-        handler.addCommand("cmd2");
-        handler.addCommand("cmd3");
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+        
+        handler->setN(3);
+        handler->addCommand("cmd1");
+        handler->addCommand("cmd2");
+        handler->addCommand("cmd3");
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
@@ -208,12 +219,12 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         out_buffer.str("");
         string_stream.str("");
 
-        handler.addCommand("{");
-        handler.addCommand("cmd4");
-        handler.addCommand("cmd5");
-        handler.addCommand("cmd6");
-        handler.addCommand("cmd7");
-        handler.addCommand("}");
+        handler->addCommand("{");
+        handler->addCommand("cmd4");
+        handler->addCommand("cmd5");
+        handler->addCommand("cmd6");
+        handler->addCommand("cmd7");
+        handler->addCommand("}");
 
         file.open(name(time));
         string_stream << file.rdbuf();
@@ -231,20 +242,23 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        ConsoleWriter consoleWriter(out_stream, &handler);
-        FileWriter fileWriter(time, &handler);
-        handler.setN(1);
-        handler.addCommand("{");
-        handler.addCommand("cmd1");
-        handler.addCommand("cmd2");
-        handler.addCommand("{");
-        handler.addCommand("cmd3");
-        handler.addCommand("cmd4");
-        handler.addCommand("}");
-        handler.addCommand("cmd5");
-        handler.addCommand("cmd6");
-        handler.addCommand("}");
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+
+        handler->setN(1);
+        handler->addCommand("{");
+        handler->addCommand("cmd1");
+        handler->addCommand("cmd2");
+        handler->addCommand("{");
+        handler->addCommand("cmd3");
+        handler->addCommand("cmd4");
+        handler->addCommand("}");
+        handler->addCommand("cmd5");
+        handler->addCommand("cmd6");
+        handler->addCommand("}");
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
@@ -263,19 +277,22 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        ConsoleWriter consoleWriter(out_stream, &handler);
-        FileWriter fileWriter(time, &handler);
-        handler.setN(3);
-        handler.addCommand("cmd1");
-        handler.addCommand("cmd2");
-        handler.addCommand("cmd3");
-        handler.addCommand("{");
-        handler.addCommand("cmd4");
-        handler.addCommand("cmd5");
-        handler.addCommand("cmd6");
-        handler.addCommand("cmd7");
-        handler.stop();
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+
+        handler->setN(3);
+        handler->addCommand("cmd1");
+        handler->addCommand("cmd2");
+        handler->addCommand("cmd3");
+        handler->addCommand("{");
+        handler->addCommand("cmd4");
+        handler->addCommand("cmd5");
+        handler->addCommand("cmd6");
+        handler->addCommand("cmd7");
+        handler->stop();
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
@@ -296,15 +313,17 @@ BOOST_AUTO_TEST_SUITE(extendeds_tests)
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
+        auto handler = std::make_shared<Handler>();
         {
-            FileWriter fileWriter(time, &handler);
+            auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+            fileWriter->subscribe(handler);
         }
-        ConsoleWriter consoleWriter(out_stream, &handler);
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        consoleWriter->subscribe(handler);
         
-        handler.setN(1);
-        handler.addCommand("cmd1");
-        handler.stop();
+        handler->setN(1);
+        handler->addCommand("cmd1");
+        handler->stop();
 
         std::fstream file{name(time)};
         std::stringstream string_stream;
@@ -315,20 +334,48 @@ BOOST_AUTO_TEST_SUITE(extendeds_tests)
         BOOST_CHECK_EQUAL(string_stream.str(),"");
     }
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(large_string)
+    {
+        Handler handler;
+        handler.setN(4);
+        BOOST_CHECK_THROW(handler.addCommand("123456789012345678901234567890123456789012345678901"),
+                            std::exception);
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(error_set_N)
+    {
+        Handler handler;
+        BOOST_CHECK_THROW(handler.addCommand("cmd1"),std::exception);
+        handler.setN(5);
+        handler.addCommand("cmd1");
+        handler.addCommand("cmd2");
+        handler.addCommand("cmd3");
+        handler.addCommand("cmd4");
+        BOOST_CHECK_THROW(handler.setN(3),std::exception);
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
     BOOST_AUTO_TEST_CASE(empty_string)
     {
         std::stringbuf out_buffer;
         std::ostream out_stream(&out_buffer);
         auto time = std::make_shared<std::time_t>();
 
-        Handler handler;
-        FileWriter fileWriter(time, &handler);
-        ConsoleWriter consoleWriter(out_stream, &handler);
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
         
-        handler.setN(1);
-        handler.addCommand("");
-        handler.addCommand("");
-        handler.stop();
+        handler->setN(1);
+        handler->addCommand("");
+        handler->addCommand("");
+        handler->stop();
 
         std::fstream file;
         file.open(name(time));

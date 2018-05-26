@@ -1,20 +1,22 @@
 #include <iostream>
 
-#include "bulk.h"
-#include "writers.h"
+#include "Writers.h"
 
 int main() 
 {
+
   try {
     int N;
     std::cin >> N;
 
-    std::unique_ptr<Handler> handler(new Handler);
-    std::unique_ptr<ConsoleWriter> consoleWriter(new ConsoleWriter(handler.get()));
-    std::unique_ptr<FileWriter> fileWriter(new FileWriter(handler.get()));
+    auto handler = std::make_shared<Handler>();
+    auto consoleWriter = std::make_shared<ConsoleWriter>();
+    auto fileWriter = std::make_shared<FileWriter>();
+    consoleWriter->subscribe(handler);
+    fileWriter->subscribe(handler);
 
     handler->setN(N);
-
+    
     std::string line;
     while (std::getline(std::cin, line)) {
       handler->addCommand(line);
