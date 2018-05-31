@@ -11,6 +11,7 @@ find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 set(SOURCE 
         Handler.cpp
         Writers.cpp    
+        Parser.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE} main.cpp)

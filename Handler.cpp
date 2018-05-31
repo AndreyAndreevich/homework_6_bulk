@@ -28,7 +28,8 @@ void Handler::subscribe(const std::weak_ptr<Observer>& obs) {
 }
 
 void Handler::setN(const int& n) {
-  if (n < commands->size()) {
+  int size = commands->size();
+  if (n < size) {
     throw std::runtime_error("error set N"); 
   } 
   N = n;
@@ -40,21 +41,24 @@ void Handler::addCommand(const std::string& command) {
   }
   
   if (N == 0) {
-    throw std::runtime_error("zero_N"); 
+    throw std::runtime_error("parameter is zero"); 
   } 
 
-  switch(parser.pars(command))
+  switch(parser.parsing(command))
   {
     case BlockParser::Empty: 
       break;
 
     case BlockParser::StartBlock: 
       N = -1; 
+      if (commands->size() > 0)
+        print();
       commands->clear();
       break;
 
     case BlockParser::CancelBlock:
       N = commands->size();
+      if (N == 0) N = 1;
       break;
 
     case BlockParser::Command:

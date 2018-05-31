@@ -14,30 +14,9 @@ public:
     Empty
   };
 
-  Block pars(const std::string& line) {
-    if (line.size() == 0) 
-      return Block::Empty;
-
-    if (line.find("{") != std::string::npos) {
-      blocks_count++;
-      if (blocks_count > 1) 
-        return Block::Empty;
-      else 
-        return Block::StartBlock;
-    }
-
-    if(line.find("}") != std::string::npos) {
-      if (blocks_count == 0) 
-        return Block::Empty;
-
-      blocks_count--;
-      if (blocks_count != 0) 
-        return Block::Empty;
-      else 
-        return Block::CancelBlock;
-    }
-    return Block::Command;
-  }
+  Block parsing(const std::string& line);
 };
+
+int start_parsing(int argc, char *argv[]);
 
 #endif

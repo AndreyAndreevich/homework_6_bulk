@@ -15,6 +15,55 @@ std::string name(const std::weak_ptr<std::time_t>& time) {
     return out_buffer.str();
 }
 
+BOOST_AUTO_TEST_SUITE(test_parser)
+
+    BOOST_AUTO_TEST_CASE(start_parser)
+    {
+        char* argv[2];
+        argv[1] = "55";
+        BOOST_CHECK_THROW(start_parsing(0,argv),std::exception);
+        BOOST_CHECK_THROW(start_parsing(1,argv),std::exception);
+        BOOST_CHECK_EQUAL(start_parsing(2,argv),55);
+        BOOST_CHECK_EQUAL(start_parsing(10,argv),55);
+        argv[1] = "asd";
+        BOOST_CHECK_THROW(start_parsing(2,argv),std::exception);
+        argv[1] = "0";
+        BOOST_CHECK_THROW(start_parsing(2,argv),std::exception);
+        argv[1] = "asd4";
+        BOOST_CHECK_THROW(start_parsing(2,argv),std::exception);
+        argv[1] = "4fd";
+        BOOST_CHECK_EQUAL(start_parsing(10,argv),4);
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(block_parser)
+    {
+        auto parser = std::make_unique<BlockParser>();
+        BOOST_CHECK_EQUAL(parser->parsing("cmd"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing(""),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing(" "),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("{"),BlockParser::StartBlock);
+        BOOST_CHECK_EQUAL(parser->parsing("cmd"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("{"),BlockParser::Empty);
+        BOOST_CHECK_EQUAL(parser->parsing("cmd"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("}"),BlockParser::Empty);
+        BOOST_CHECK_EQUAL(parser->parsing("}"),BlockParser::CancelBlock);
+        BOOST_CHECK_EQUAL(parser->parsing("}"),BlockParser::Command);
+
+        BOOST_CHECK_EQUAL(parser->parsing("{cmd"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("cmd{"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("{cmd}"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("{}"),BlockParser::Command);
+        BOOST_CHECK_EQUAL(parser->parsing("}{"),BlockParser::Command);
+    }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 BOOST_AUTO_TEST_SUITE(test_writers)
 
     BOOST_AUTO_TEST_CASE(print_console)
@@ -129,13 +178,25 @@ BOOST_AUTO_TEST_SUITE(test_handler)
         handler->addCommand("cmd1");
         handler->addCommand("cmd2");
         handler->addCommand("{");
-        handler->addCommand("cmd3");
-        handler->addCommand("cmd4");
-        handler->addCommand("}");
 
         std::ifstream file{name(time)};
         std::stringstream string_stream;
         string_stream << file.rdbuf();
+        file.close();
+
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1, cmd2\n");
+        BOOST_CHECK_EQUAL(string_stream.str(),"bulk: cmd1, cmd2");
+
+        out_buffer.str("");
+        string_stream.str("");
+
+        handler->addCommand("cmd3");
+        handler->addCommand("cmd4");
+        handler->addCommand("}");
+
+        file.open(name(time));
+        string_stream << file.rdbuf();
+        file.close();
 
         BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd3, cmd4\n");
         BOOST_CHECK_EQUAL(string_stream.str(),"bulk: cmd3, cmd4");
@@ -283,7 +344,7 @@ BOOST_AUTO_TEST_SUITE(test_tusk)
         consoleWriter->subscribe(handler);
         fileWriter->subscribe(handler);
 
-        handler->setN(3);
+        handler->setN(4);
         handler->addCommand("cmd1");
         handler->addCommand("cmd2");
         handler->addCommand("cmd3");
@@ -372,16 +433,69 @@ BOOST_AUTO_TEST_SUITE(extendeds_tests)
         consoleWriter->subscribe(handler);
         fileWriter->subscribe(handler);
         
-        handler->setN(1);
+        handler->setN(2);
         handler->addCommand("");
         handler->addCommand("");
         handler->stop();
 
         std::fstream file;
         file.open(name(time));
+        std::stringstream string_stream;
+        string_stream << file.rdbuf();
+        file.close();
 
-        BOOST_CHECK(!file.is_open());
-        BOOST_CHECK_EQUAL(out_buffer.str(),""); 
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: , \n");
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: , \n"); 
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(start_empty_block)
+    {
+        std::stringbuf out_buffer;
+        std::ostream out_stream(&out_buffer);
+        auto time = std::make_shared<std::time_t>();
+
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        auto fileWriter = std::shared_ptr<Observer>(new FileWriter(time));
+        consoleWriter->subscribe(handler);
+        fileWriter->subscribe(handler);
+        
+        handler->setN(2);
+        handler->addCommand("{");
+        handler->addCommand("}");
+        handler->stop();
+
+        std::fstream file;
+        file.open(name(time));
+        std::stringstream string_stream;
+        string_stream << file.rdbuf();
+        file.close();
+
+        BOOST_CHECK(out_buffer.str().empty());
+        BOOST_CHECK(out_buffer.str().empty()); 
+    }
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BOOST_AUTO_TEST_CASE(empty_block)
+    {
+        std::stringbuf out_buffer;
+        std::ostream out_stream(&out_buffer);
+
+        auto handler = std::make_shared<Handler>();
+        auto consoleWriter = std::shared_ptr<Observer>(new ConsoleWriter(out_stream));
+        consoleWriter->subscribe(handler);
+        
+        handler->setN(2);
+        handler->addCommand("cmd1");
+        handler->addCommand("{");
+        handler->addCommand("}");
+        handler->addCommand("cmd2");
+        handler->stop();
+
+        BOOST_CHECK_EQUAL(out_buffer.str(),"bulk: cmd1\nbulk: cmd2\n");
     }
 
 BOOST_AUTO_TEST_SUITE_END()
