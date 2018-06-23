@@ -6,13 +6,11 @@
 int main(int argc, char *argv[]) 
 {
   try {
-    auto N = start_parsing(argc,argv);
-    auto handler = std::make_shared<Handler>();
+    auto handler = std::make_shared<Handler>(start_parsing(argc,argv));
     auto consoleWriter = std::make_shared<ConsoleWriter>();
     auto fileWriter = std::make_shared<FileWriter>();
     consoleWriter->subscribe(handler);
-    fileWriter->subscribe(handler);
-    handler->setN(N);   
+    fileWriter->subscribe(handler);  
     std::string line;
     while (std::getline(std::cin, line)) {
       handler->addCommand(line);
